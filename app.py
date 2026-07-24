@@ -1379,31 +1379,22 @@ with tab6:
         cols = list(merged_.columns)
         page_w = 277
 
-        WIDE_COLS = {"Institute Name", "Intern","SchoolID","State","District","City","Tasks","Clubs (Day)","Clubs (Total)","Emails (Total)","Contacts (Total)"}
-        MED_COLS = {"State", "District", "City"}
-
-        pdf.set_font("Helvetica", "", 8)
-        min_w, max_w = 14, 70
+       pdf.set_font("Helvetica", "", 8)
+        min_w, max_w = 12, 70
         raw_widths = []
         for c in cols:
-            if c == "Institute Name":
-                raw_widths.append(60)
-                continue
-            if c == "Intern":
-                raw_widths.append(45)
-                continue
             header_w = pdf.get_string_width(sanitize(c)) + 6
             sample_w = merged_[c].astype(str).head(200).map(
-                lambda v: pdf.get_string_width(sanitize(v)[:30])
+                lambda v: pdf.get_string_width(sanitize(v))
             ).max() + 6
             w = max(header_w, sample_w)
-            w = max(min_w, min(w, max_w if c not in MED_COLS else 40))
+            w = max(min_w, min(w, max_w))
             raw_widths.append(w)
 
-        remaining = page_w - sum(w for c, w in zip(cols, raw_widths) if c in WIDE_COLS)
-        other_total = sum(w for c, w in zip(cols, raw_widths) if c not in WIDE_COLS)
-        scale = (remaining / other_total) if other_total else 1
-        widths = [w if c in WIDE_COLS else w * scale for c, w in zip(cols, raw_widths)]
+        total_w = sum(raw_widths)
+        scale = page_w / total_w if total_w else 1
+        widths = [w * scale for w in raw_widths]
+        
 
         row_h = 6
 
@@ -1426,16 +1417,10 @@ with tab6:
             max_lines = 1
             for c, w in zip(cols, widths):
                 text = sanitize(r[c])
-                if c in WIDE_COLS:
-                    lines = wrap_text(pdf, text, w)
-                    wrapped_cells.append((lines, w, True))
-                    max_lines = max(max_lines, len(lines))
-                else:
-                    while pdf.get_string_width(text) > w - 3 and len(text) > 1:
-                        text = text[:-1]
-                    if text != sanitize(r[c]):
-                        text = (text[:-3] + "...") if len(text) > 3 else text
-                    wrapped_cells.append(([text], w, False))
+                lines = wrap_text(pdf, text, w)
+                wrapped_cells.append((lines, w, True))
+                max_lines = max(max_lines, len(lines))
+                
 
             this_row_h = row_h * max_lines
 
@@ -1450,16 +1435,13 @@ with tab6:
             for lines, w, is_wide in wrapped_cells:
                 x = pdf.get_x()
                 y = pdf.get_y()
-                if is_wide:
-                    # draw outer border box for full row height
-                    pdf.rect(x, y, w, this_row_h)
-                    for i, line in enumerate(lines):
-                        pdf.set_xy(x + 1, y + i * row_h)
-                        pdf.cell(w - 2, row_h, line, border=0, align="L")
-                    pdf.set_xy(x + w, y)
-                else:
-                    pdf.cell(w, this_row_h, lines[0], border=1, align="C")
+                pdf.rect(x, y, w, this_row_h)
+                for i, line in enumerate(lines):
+                    pdf.set_xy(x + 1, y + i * row_h)
+                    pdf.cell(w - 2, row_h, line, border=0, align="L")
+                pdf.set_xy(x + w, y)
             pdf.set_xy(x_start, y_start + this_row_h)
+            
 
         out = pdf.output(dest="S")
         return out.encode("latin-1") if isinstance(out, str) else bytes(out)    
