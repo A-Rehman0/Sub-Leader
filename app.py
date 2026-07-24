@@ -189,6 +189,17 @@ div[data-baseweb="select"]:focus-within>div{border-color:#0d47a1 !important;box-
 /* Toast - Glowing Pulse */
 .toast{position:fixed;bottom:24px;right:24px;background:linear-gradient(135deg,#0C4A6E,#06B6D4);color:white;padding:18px 26px;border-radius:12px;box-shadow:0 10px 25px rgba(12,74,110,0.3);z-index:9999;transform:translateX(120%);transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);font-weight:600;display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.2);animation:pulseGlow 2.5s infinite;}
 .toast.show{transform:translateX(0);}
+@media print {
+  [data-testid="stDataFrame"], table {
+    width: 100% !important;
+    table-layout: auto !important;
+    font-size: 9px !important;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+}
 </style>
 """, unsafe_allow_html=True)
 
