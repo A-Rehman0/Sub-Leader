@@ -1363,7 +1363,7 @@ with tab6:
         cols = list(merged_.columns)
         page_w = 277
 
-        WIDE_COLS = {"Institute Name", "Intern"}
+        WIDE_COLS = {"Institute Name", "Intern","State","District","City","Clubs (Day)","Clubs (Total)","Emails (Total)","Contacts (Total)"}
         MED_COLS = {"State", "District", "City"}
 
         pdf.set_font("Helvetica", "", 8)
