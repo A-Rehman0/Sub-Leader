@@ -1379,7 +1379,7 @@ with tab6:
         cols = list(merged_.columns)
         page_w = 277
 
-       pdf.set_font("Helvetica", "", 8)
+        pdf.set_font("Helvetica", "", 8)
         min_w, max_w = 12, 70
         raw_widths = []
         for c in cols:
