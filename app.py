@@ -409,8 +409,8 @@ with tab1:
         st.markdown(f'<div class="kpi purple"><div class="kpi-val">{sheet_task_count}</div><div class="kpi-lbl">Total Clubs Collected</div></div>', unsafe_allow_html=True)
     with k4:
         st.markdown(f'<div class="kpi amber"><div class="kpi-val">{active_days}</div><div class="kpi-lbl">Active Days</div></div>', unsafe_allow_html=True)
-   contacts_pct = (distinct_contacts / sheet_task_count * 100) if sheet_task_count else 0
-   emails_pct = (distinct_emails / sheet_task_count * 100) if sheet_task_count else 0
+    contacts_pct = (distinct_contacts / sheet_task_count * 100) if sheet_task_count else 0
+    emails_pct = (distinct_emails / sheet_task_count * 100) if sheet_task_count else 0
     with k5:
         st.markdown(f'<div class="kpi green"><div class="kpi-val">{distinct_contacts} </div><div class="kpi-lbl">Distinct Contacts ({contacts_pct:.2f}%)</div></div>', unsafe_allow_html=True)
     with k6:
