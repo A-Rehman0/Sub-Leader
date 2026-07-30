@@ -1404,12 +1404,23 @@ with tab6:
 
         row_h = 6
 
+        
         def draw_header():
-            pdf.set_font("Helvetica", "B", 8)
+            pdf.set_font("Helvetica", "B", 7.5)
             pdf.set_fill_color(220, 232, 249)
-            for c, w in zip(cols, widths):
-                pdf.cell(w, 8, sanitize(c), border=1, fill=True, align="C")
-            pdf.ln()
+            header_lines = [wrap_text(pdf, sanitize(c), w) for c, w in zip(cols, widths)]
+            max_h_lines = max(len(l) for l in header_lines)
+            h = 8 * max_h_lines
+            x_start, y_start = pdf.get_x(), pdf.get_y()
+            for lines, w in zip(header_lines, widths):
+                x, y = pdf.get_x(), pdf.get_y()
+                pdf.rect(x, y, w, h, style="F")
+                pdf.rect(x, y, w, h)
+                for i, line in enumerate(lines):
+                    pdf.set_xy(x, y + i * 4.2)
+                    pdf.cell(w, 4.2, line, border=0, align="C")
+                pdf.set_xy(x + w, y)
+            pdf.set_xy(x_start, y_start + h)
 
         draw_header()
         pdf.set_font("Helvetica", "", 7.5)
