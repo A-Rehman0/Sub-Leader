@@ -1313,9 +1313,9 @@ with tab6:
             merged_df[c] = ""
         merged_df['Clubs Collected'] = ""
 
-    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Today's Total Club", "Total Clubs Collected", "Emails (Total)", "Contacts (Total)"]
-    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Today's Total Club", "Total Clubs Collected", "Emails (Total)", "Contacts (Total)"]
-    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Today's Total Club", "Total Clubs Collected", "Emails (Total)", "Contacts (Total)"]
+    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
+    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
+    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
     ordered_cols = [c for c in ordered_cols if c in merged_df.columns]
     merged_df = merged_df[ordered_cols]
 
