@@ -1264,6 +1264,7 @@ with tab6:
     rows, detail_frames = [], []
     for name in sorted(df['Intern Name'].unique()):
         day_df = df[(df['Intern Name'] == name) & (df['Date'].dt.date == sl_date)].copy()
+        day_df['Clubs Collected'] = 0
         tasks = len(day_df)
         total_clubs_n = day_clubs_n = total_e = total_c = 0
         url = intern_links.get(name.strip(), "")
@@ -1292,7 +1293,7 @@ with tab6:
         })
 
         if id_cols:
-            dd = day_df[id_cols].dropna(how='all').drop_duplicates().copy()
+            dd = day_df[id_cols + ['Clubs Collected']].dropna(how='all', subset=id_cols).drop_duplicates().copy()
             if not dd.empty:
                 dd.insert(0, "Intern", format_intern_name(name))
                 detail_frames.append(dd)            
@@ -1308,8 +1309,9 @@ with tab6:
         merged_df = summary_df.copy()
         for c in id_cols:
             merged_df[c] = ""
+        merged_df['Clubs Collected'] = ""
 
-    ordered_cols = ["Intern"] + id_cols + ["Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
+        ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
     ordered_cols = [c for c in ordered_cols if c in merged_df.columns]
     merged_df = merged_df[ordered_cols]
 
