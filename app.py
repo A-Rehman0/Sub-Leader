@@ -1264,7 +1264,6 @@ with tab6:
     rows, detail_frames = [], []
     for name in sorted(df['Intern Name'].unique()):
         day_df = df[(df['Intern Name'] == name) & (df['Date'].dt.date == sl_date)].copy()
-        day_df['Clubs Collected'] = 0
         tasks = len(day_df)
         total_clubs_n = day_clubs_n = total_e = total_c = 0
         url = intern_links.get(name.strip(), "")
@@ -1284,6 +1283,9 @@ with tab6:
                 except Exception:
                     pass
                 total_e, total_c = get_intern_stats(csv_url)
+
+        if 'Clubs Collected' not in day_df.columns:
+            day_df['Clubs Collected'] = 0
 
         rows.append({
             "Intern": name, "Tasks": tasks,
