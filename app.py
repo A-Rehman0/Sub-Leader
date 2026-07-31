@@ -1247,6 +1247,18 @@ with tab5:
 with tab6:
     st.markdown('<div class="sh">🧑‍💼 &nbsp;Sub Leader Summary</div>', unsafe_allow_html=True)
     sl_date = st.date_input("Select Date", value=today, key="sl_date")
+    # ===== START: DATE_RANGE_EXPORT =====
+    range_mode = st.checkbox("Use date range instead of single day", key="sl_range_mode")
+    if range_mode:
+        start_date, end_date = st.date_input(
+            "Select range", value=(today, today), key="sl_range_dates"
+        )
+        date_filter = (df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)
+    else:
+        date_filter = df['Date'].dt.date == sl_date
+    # replace: (df['Intern Name'] == name) & (df['Date'].dt.date == sl_date)
+    # with:    (df['Intern Name'] == name) & date_filter
+    # ===== END: DATE_RANGE_EXPORT =====
 
     def get_intern_stats(csv_url):
         """Return (total_emails, total_contacts) - distinct, non-blank."""
@@ -1302,6 +1314,14 @@ with tab6:
                 detail_frames.append(dd)            
 
     summary_df = pd.DataFrame(rows)
+    # ===== START: PERCENT_COMPLETE_COLUMN =====
+    summary_df["% Complete"] = summary_df.apply(
+    lambda r: round((r["Emails (Total)"] + r["Contacts (Total)"]) /
+                     (2 * r["Clubs (Total)"]) * 100, 1) if r["Clubs (Total)"] else 0.0,
+    axis=1
+)
+# add "% Complete" to ordered_cols list wherever "Contacts (Total)" is added
+# ===== END: PERCENT_COMPLETE_COLUMN =====
     summary_df["Intern"] = summary_df["Intern"].apply(format_intern_name)
     detail_df = pd.concat(detail_frames, ignore_index=True) if detail_frames else pd.DataFrame(columns=["Intern"] + id_cols)
 
@@ -1319,6 +1339,18 @@ with tab6:
     ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
     ordered_cols = [c for c in ordered_cols if c in merged_df.columns]
     merged_df = merged_df[ordered_cols]
+    # ===== START: SORTABLE_SUMMARY_TABLE =====
+    sort_col = st.selectbox(
+        "Sort by",
+        [c for c in merged_df.columns if c != "Intern"],
+        index=0,
+        key="sl_sort_col"
+    )
+sort_asc = st.checkbox("Ascending", value=True, key="sl_sort_asc")
+merged_df = merged_df.sort_values(sort_col, ascending=sort_asc, na_position="last")
+merged_display = pd.concat([merged_df, pd.DataFrame([total_row])], ignore_index=True)
+# place this AFTER merged_df is fully built, BEFORE appending the TOTAL row
+# ===== END: SORTABLE_SUMMARY_TABLE =====
 
     totals = {c: summary_df[c].sum() for c in summary_df.columns if c != "Intern"}
     total_row = {c: "" for c in ordered_cols}
@@ -1334,6 +1366,14 @@ with tab6:
 
     st.markdown('<div class="sh">📋 &nbsp;Intern + Institute Summary</div>', unsafe_allow_html=True)
     st.dataframe(merged_display, use_container_width=True, hide_index=True)
+    # ===== START: REMINDER_BUTTON =====
+    for _, row in merged_display.iterrows():
+        if row["Intern"] != "TOTAL" and str(row["Tasks"]) == "0":
+            msg = f"Hi {row['Intern']}, please submit today's task update."
+            wa_link = f"https://wa.me/?text={msg.replace(' ', '%20')}"
+            st.link_button(f"📩 Remind {row['Intern']}", wa_link)
+    # place after st.dataframe(merged_display, ...) in tab6
+    # ===== END: REMINDER_BUTTON =====
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
