@@ -213,7 +213,7 @@ div[data-baseweb="select"]:focus-within>div{border-color:#0d47a1 !important;box-
 st.markdown("""
 <div class="topbar">
     <span class="topbar-icon"></span>
-    <div><h2>Blue Planet Infosolutions Pvt. Ltd.</h2><p>Intern Task Dashboard</p></div>
+    <div><h2>Team Leader Afrah Dashboard</h2><p>Intern Task Dashboard</p></div>
    
 </div>
 """, unsafe_allow_html=True)
