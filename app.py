@@ -1346,11 +1346,11 @@ with tab6:
         index=0,
         key="sl_sort_col"
     )
-sort_asc = st.checkbox("Ascending", value=True, key="sl_sort_asc")
-merged_df = merged_df.sort_values(sort_col, ascending=sort_asc, na_position="last")
-merged_display = pd.concat([merged_df, pd.DataFrame([total_row])], ignore_index=True)
-# place this AFTER merged_df is fully built, BEFORE appending the TOTAL row
-# ===== END: SORTABLE_SUMMARY_TABLE =====
+    sort_asc = st.checkbox("Ascending", value=True, key="sl_sort_asc")
+    merged_df = merged_df.sort_values(sort_col, ascending=sort_asc, na_position="last")
+    merged_display = pd.concat([merged_df, pd.DataFrame([total_row])], ignore_index=True)
+    # place this AFTER merged_df is fully built, BEFORE appending the TOTAL row
+    # ===== END: SORTABLE_SUMMARY_TABLE =====
 
     totals = {c: summary_df[c].sum() for c in summary_df.columns if c != "Intern"}
     total_row = {c: "" for c in ordered_cols}
