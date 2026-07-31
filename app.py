@@ -1325,6 +1325,12 @@ with tab6:
     total_row["Intern"] = "TOTAL"
     total_row.update(totals)
     merged_display = pd.concat([merged_df, pd.DataFrame([total_row])], ignore_index=True)
+    # ===== START: ZERO_TASK_FLAG =====
+    merged_display["⚠ Flag"] = merged_display["Tasks"].apply(
+    lambda t: "🔴 No Tasks" if str(t) == "0" else ""
+)
+# put this right after merged_display is built, before st.dataframe(merged_display, ...)
+# ===== END: ZERO_TASK_FLAG =====
 
     st.markdown('<div class="sh">📋 &nbsp;Intern + Institute Summary</div>', unsafe_allow_html=True)
     st.dataframe(merged_display, use_container_width=True, hide_index=True)
