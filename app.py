@@ -1314,14 +1314,7 @@ with tab6:
                 detail_frames.append(dd)            
 
     summary_df = pd.DataFrame(rows)
-    # ===== START: PERCENT_COMPLETE_COLUMN =====
-    summary_df["% Complete"] = summary_df.apply(
-    lambda r: round((r["Emails (Total)"] + r["Contacts (Total)"]) /
-                     (2 * r["Clubs (Total)"]) * 100, 1) if r["Clubs (Total)"] else 0.0,
-    axis=1
-)
-# add "% Complete" to ordered_cols list wherever "Contacts (Total)" is added
-# ===== END: PERCENT_COMPLETE_COLUMN =====
+    
     summary_df["Intern"] = summary_df["Intern"].apply(format_intern_name)
     detail_df = pd.concat(detail_frames, ignore_index=True) if detail_frames else pd.DataFrame(columns=["Intern"] + id_cols)
 
@@ -1355,12 +1348,7 @@ with tab6:
     total_row["Intern"] = "TOTAL"
     total_row.update(totals)
     merged_display = pd.concat([merged_df, pd.DataFrame([total_row])], ignore_index=True)
-    # ===== START: ZERO_TASK_FLAG =====
-    merged_display["⚠ Flag"] = merged_display["Tasks"].apply(
-    lambda t: "🔴 No Tasks" if str(t) == "0" else ""
-)
-# put this right after merged_display is built, before st.dataframe(merged_display, ...)
-# ===== END: ZERO_TASK_FLAG =====
+  
 
     st.markdown('<div class="sh">📋 &nbsp;Intern + Institute Summary</div>', unsafe_allow_html=True)
     st.dataframe(merged_display, use_container_width=True, hide_index=True)
