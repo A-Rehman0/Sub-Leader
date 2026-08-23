@@ -1250,7 +1250,7 @@ with tab5:
     """)
 
 with tab6:
-    st.markdown('<div class="sh">🧑‍💼 &nbsp;Leader Summary</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sh"> &nbsp;Filter</div>', unsafe_allow_html=True)
 
     sf1, sf2, sf4, sf3 = st.columns([2, 2, 1.5, 2])
     with sf1:
