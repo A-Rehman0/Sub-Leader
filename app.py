@@ -1665,7 +1665,7 @@ with tab6:
     st.download_button(
         btn_label,
         data=pdf_bytes,
-        file_name=f"Data_Analyst_Report_{pdf_label_final.replace(' ', '_')}_{intern_name}.pdf",
+        file_name=f"Data_Analyst_Report_{pdf_label_final.replace(' ', '_')}_{sl_intern.replace(' ', '_')}.pdf",
         mime="application/pdf",
         use_container_width=True,
         key="subleader_pdf_export",
