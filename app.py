@@ -340,7 +340,7 @@ def get_day_clubs_count(csv_url, date_):
     day_count = len(sheet_df[sheet_df[date_col].dt.date == date_])
     return total, day_count
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-    ["📊 Dashboard","🔗 Links","Email Format","Analysis Task","ℹ️ Guide","🧑‍💼 Sub Leader"]
+    ["📊 Dashboard","🔗 Links","Email Format","Analysis Task","ℹ️ Guide","Report Generation"]
 )
 
 with tab1:
@@ -1250,20 +1250,34 @@ with tab5:
     """)
 
 with tab6:
-    st.markdown('<div class="sh">🧑‍💼 &nbsp;Sub Leader Summary</div>', unsafe_allow_html=True)
-    sl_date = st.date_input("Select Date", value=today, key="sl_date")
-    # ===== START: DATE_RANGE_EXPORT =====
-    range_mode = st.checkbox("Use date range instead of single day", key="sl_range_mode")
-    if range_mode:
-        start_date, end_date = st.date_input(
-            "Select range", value=(today, today), key="sl_range_dates"
+    st.markdown('<div class="sh">🧑‍💼 &nbsp;Leader Summary</div>', unsafe_allow_html=True)
+
+    sf1, sf2, sf4, sf3 = st.columns([2, 2, 1.5, 2])
+    with sf1:
+        sl_intern = st.selectbox(
+            "Select Intern",
+            ["All"] + sorted(df['Intern Name'].unique()),
+            key="sl_intern"
         )
-        date_filter = (df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)
-    else:
-        date_filter = df['Date'].dt.date == sl_date
-    # replace: (df['Intern Name'] == name) & (df['Date'].dt.date == sl_date)
-    # with:    (df['Intern Name'] == name) & date_filter
-    # ===== END: DATE_RANGE_EXPORT =====
+    with sf2:
+        sl_mode = st.radio(
+            "Date Range",
+            ["Single Date", "Overall (All Time)"],
+            key="sl_mode",
+            horizontal=True
+        )
+    with sf4:
+        st.markdown('<div style="padding-top:28px;"></div>', unsafe_allow_html=True)
+        show_pending = st.checkbox("⚠️ Pending Only")
+    with sf3:
+        if sl_mode == "Single Date":
+            sl_date = st.date_input("Select Date", value=today, key="sl_date")
+        else:
+            sl_date = None
+            st.markdown(
+                '<div style="padding-top:28px;font-weight:700;color:#0d47a1;">Showing all-time data</div>',
+                unsafe_allow_html=True
+            )  
 
     def get_intern_stats(csv_url):
         """Return (total_emails, total_contacts) - distinct, non-blank."""
@@ -1279,9 +1293,18 @@ with tab6:
 
     id_cols = [c for c in ["SchoolID", "Institute Name", "State", "District", "City"] if c in df.columns]
 
+    intern_list = sorted(df['Intern Name'].unique()) if sl_intern == "All" else [sl_intern]
+
+    def _nunique_series(s):
+        return s.dropna().astype(str).str.strip().replace('', pd.NA).dropna().nunique()
+
     rows, detail_frames = [], []
-    for name in sorted(df['Intern Name'].unique()):
-        day_df = df[(df['Intern Name'] == name) & (df['Date'].dt.date == sl_date)].copy()
+    for name in intern_list:
+        if sl_mode == "Single Date":
+            day_df = df[(df['Intern Name'] == name) & (df['Date'].dt.date == sl_date)].copy()
+        else:
+            day_df = df[df['Intern Name'] == name].copy()
+        day_df['Date'] = day_df['Date'].dt.strftime('%d-%b-%Y')
         tasks = len(day_df)
         total_clubs_n = day_clubs_n = total_e = total_c = 0
         url = intern_links.get(name.strip(), "")
@@ -1293,31 +1316,43 @@ with tab6:
                     _idf = load_sheet_csv(csv_url)
                     total_clubs_n = len(_idf)
                     _idf['SchoolID'] = _idf['SchoolID'].astype(str).str.strip()
+
                     clubs_count = _idf.groupby('SchoolID').size().reset_index(name='Clubs Collected')
                     day_df['SchoolID'] = day_df['SchoolID'].astype(str).str.strip()
                     day_df = day_df.merge(clubs_count, on='SchoolID', how='left')
                     day_df['Clubs Collected'] = day_df['Clubs Collected'].fillna(0).astype(int)
                     day_clubs_n = day_df['Clubs Collected'].sum()
+
+                    # per-college (per SchoolID) distinct email/contact counts
+                    if 'ClubEmail' in _idf.columns:
+                        email_counts = _idf.groupby('SchoolID')['ClubEmail'].apply(_nunique_series).reset_index(name='Emails')
+                        day_df = day_df.merge(email_counts, on='SchoolID', how='left')
+                    if 'ClubContactNumber' in _idf.columns:
+                        contact_counts = _idf.groupby('SchoolID')['ClubContactNumber'].apply(_nunique_series).reset_index(name='Contacts')
+                        day_df = day_df.merge(contact_counts, on='SchoolID', how='left')
                 except Exception:
                     pass
                 total_e, total_c = get_intern_stats(csv_url)
 
-        if 'Clubs Collected' not in day_df.columns:
-            day_df['Clubs Collected'] = 0
+        for col in ['Clubs Collected', 'Emails', 'Contacts']:
+            if col not in day_df.columns:
+                day_df[col] = 0
+            day_df[col] = day_df[col].fillna(0).astype(int)
+
+            pending_tasks = int((day_df['Clubs Collected'] == 0).sum()) if 'Clubs Collected' in day_df.columns else 0
 
         rows.append({
             "Intern": name, "Tasks": tasks,
             "Clubs (Day)": day_clubs_n, "Clubs (Total)": total_clubs_n,
-            "Emails (Total)": total_e,
-            "Contacts (Total)": total_c,
+            "Emails (Total)": total_e, "Contacts (Total)": total_c,
+            "Pending Tasks": pending_tasks,
         })
 
         if id_cols:
-            dd = day_df[id_cols + ['Clubs Collected']].dropna(how='all', subset=id_cols).drop_duplicates().copy()
+            dd = day_df[id_cols + ['Date', 'Clubs Collected', 'Emails', 'Contacts']].dropna(how='all', subset=id_cols).drop_duplicates().copy()
             if not dd.empty:
                 dd.insert(0, "Intern", format_intern_name(name))
-                detail_frames.append(dd)            
-
+                detail_frames.append(dd)
     summary_df = pd.DataFrame(rows)
     
     summary_df["Intern"] = summary_df["Intern"].apply(format_intern_name)
@@ -1332,39 +1367,70 @@ with tab6:
             merged_df[c] = ""
         merged_df['Clubs Collected'] = ""
 
-    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
-    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
-    ordered_cols = ["Intern"] + id_cols + ["Clubs Collected", "Tasks", "Clubs (Day)", "Clubs (Total)", "Emails (Total)", "Contacts (Total)"]
+    date_col = ["Date"] if show_pending else []
+    ordered_cols = ["Intern"] + id_cols + date_col + ["Tasks", "Clubs Collected", "Emails", "Contacts"]
     ordered_cols = [c for c in ordered_cols if c in merged_df.columns]
     merged_df = merged_df[ordered_cols]
-    
+
     totals = {c: summary_df[c].sum() for c in summary_df.columns if c != "Intern"}
+    table_totals = {c: merged_df[c].sum() for c in ["Clubs Collected", "Emails", "Contacts"] if c in merged_df.columns}
     total_row = {c: "" for c in ordered_cols}
     total_row["Intern"] = "TOTAL"
-    total_row.update(totals)
+    total_row.update(table_totals)
     merged_display = pd.concat([merged_df, pd.DataFrame([total_row])], ignore_index=True)
+
+    # ── Extra KPI: Total Clubs Collected (overall, across selected interns) ──
+    total_clubs_collected = totals.get("Clubs (Total)", 0)
+
+    # ── Extra KPI: Today's Clubs Collected (shown only when relevant) ──
+    show_today_kpi = (sl_mode == "Single Date" and sl_date == today) or (sl_mode != "Single Date")
+
+    if sl_mode == "Single Date" and sl_date == today:
+        today_clubs_total = totals.get("Clubs (Day)", 0)
+    elif show_today_kpi:
+        today_clubs_total = 0
+        for name in intern_list:
+            url = intern_links.get(name.strip(), "")
+            if is_valid_link(url):
+                csv_url = sheet_csv_url(url)
+                if csv_url:
+                    try:
+                        _idf = load_sheet_csv(csv_url)
+                        _idf['SchoolID'] = _idf['SchoolID'].astype(str).str.strip()
+                        clubs_count = _idf.groupby('SchoolID').size().reset_index(name='Clubs Collected')
+                        tday_df = df[(df['Intern Name'] == name) & (df['Date'].dt.date == today)].copy()
+                        tday_df['SchoolID'] = tday_df['SchoolID'].astype(str).str.strip()
+                        tday_df = tday_df.merge(clubs_count, on='SchoolID', how='left')
+                        tday_df['Clubs Collected'] = tday_df['Clubs Collected'].fillna(0).astype(int)
+                        today_clubs_total += tday_df['Clubs Collected'].sum()
+                    except Exception:
+                        pass
+    else:
+        today_clubs_total = 0
   
 
+    k1, k2, k3, k4 = st.columns(4)
+    kpi_cols = st.columns(2 if show_today_kpi else 1)
+
+    with kpi_cols[0]:
+        st.markdown(f'<div class="kpi blue"><div class="kpi-val">{total_clubs_collected}</div><div class="kpi-lbl">Total Clubs Collected</div></div>', unsafe_allow_html=True)
+    if show_today_kpi:
+        with kpi_cols[1]:
+            st.markdown(f'<div class="kpi green"><div class="kpi-val">{today_clubs_total}</div><div class="kpi-lbl">Today\'s Clubs Collected</div></div>', unsafe_allow_html=True)
     st.markdown('<div class="sh">📋 &nbsp;Intern + Institute Summary</div>', unsafe_allow_html=True)
-    st.dataframe(merged_display, use_container_width=True, hide_index=True)
-    # ===== START: REMINDER_BUTTON =====
+
+    display_df = merged_display.drop(columns=["Tasks"], errors="ignore")
+    if show_pending:
+        clubs_num = pd.to_numeric(display_df["Clubs Collected"], errors="coerce").fillna(0)
+        display_df = display_df[(display_df["Intern"] != "TOTAL") & (clubs_num == 0)]
+
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+
     for _, row in merged_display.iterrows():
         if row["Intern"] != "TOTAL" and str(row["Tasks"]) == "0":
             msg = f"Hi {row['Intern']}, please submit today's task update."
             wa_link = f"https://wa.me/?text={msg.replace(' ', '%20')}"
             st.link_button(f"📩 Remind {row['Intern']}", wa_link)
-    # place after st.dataframe(merged_display, ...) in tab6
-    # ===== END: REMINDER_BUTTON =====
-
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        st.markdown(f'<div class="kpi blue"><div class="kpi-val">{totals["Tasks"]}</div><div class="kpi-lbl">Tasks ({sl_date})</div></div>', unsafe_allow_html=True)
-    with k2:
-        st.markdown(f'<div class="kpi green"><div class="kpi-val">{totals["Clubs (Day)"]}</div><div class="kpi-lbl">Clubs Today</div></div>', unsafe_allow_html=True)
-    with k3:
-        st.markdown(f'<div class="kpi purple"><div class="kpi-val">{totals["Emails (Total)"]}</div><div class="kpi-lbl">Total Emails</div></div>', unsafe_allow_html=True)
-    with k4:
-        st.markdown(f'<div class="kpi amber"><div class="kpi-val">{totals["Contacts (Total)"]}</div><div class="kpi-lbl">Total Contacts</div></div>', unsafe_allow_html=True)
 
     def sanitize(text):
         text = str(text)
@@ -1400,103 +1466,207 @@ with tab6:
             lines.append(current)
         return lines if lines else [""]
 
-    def build_pdf(merged_, date_):
-        pdf = FPDF(orientation="L", format="A4")
-        pdf.set_auto_page_break(auto=True, margin=10)
+    def build_pdf(merged_, date_label, kpis, summary_table=None, summary_title="Intern Summary", intern_name=None):
+        PRIMARY   = (12, 74, 110)
+        ACCENT    = (6, 182, 212)
+        LIGHT_BG  = (238, 243, 251)
+        HEADER_BG = (220, 232, 249)
+        ROW_ALT   = (245, 248, 254)
+        TOTAL_BG  = (220, 232, 249)
+        TEXT_DARK = (26, 26, 46)
+        GREY      = (120, 144, 156)
+
+        class PDF(FPDF):
+            def header(self):
+                self.set_fill_color(*PRIMARY)
+                self.rect(0, 0, 297, 24, style="F")
+                self.set_fill_color(*ACCENT)
+                self.rect(0, 24, 297, 1.3, style="F")
+                self.set_xy(10, 5)
+                self.set_font("Helvetica", "B", 17)
+                self.set_text_color(255, 255, 255)
+                title = "Data Analyst Summary Report"
+                if intern_name and intern_name != "All":
+                    title += f" - {intern_name}"
+                self.cell(0, 8, title, ln=1)
+                self.set_xy(10, 14)
+                self.set_font("Helvetica", "", 9.5)
+                self.set_text_color(224, 242, 254)
+                gen = datetime.now().strftime("%d %b %Y, %I:%M %p")
+                self.cell(0, 6, f"Period: {date_label}    |    Generated: {gen}", ln=1)
+                self.set_text_color(*TEXT_DARK)
+                self.set_y(30)
+
+            def footer(self):
+                self.set_y(-12)
+                self.set_draw_color(*HEADER_BG)
+                self.line(10, self.get_y(), 287, self.get_y())
+                self.set_font("Helvetica", "", 8)
+                self.set_text_color(*GREY)
+                self.cell(0, 8, f"Page {self.page_no()}", align="C")
+
+        pdf = PDF(orientation="L", format="A4")
+        pdf.set_auto_page_break(auto=True, margin=14)
         pdf.add_page()
-        pdf.set_font("Helvetica", "B", 16)
-        pdf.cell(0, 10, "Intern Task & Institute Report", ln=1, align="C")
-        pdf.set_font("Helvetica", "", 10)
-        pdf.cell(0, 7, f"Date: {date_}", ln=1)
-        pdf.ln(2)
 
-        cols = list(merged_.columns)
+        # ── KPI CARDS ──
+        n = max(len(kpis), 1)
+        margin, gap, card_h = 10, 4, 22
         page_w = 277
-
-        pdf.set_font("Helvetica", "", 8)
-        min_w, max_w = 12, 70
-        raw_widths = []
-        for c in cols:
-            header_w = pdf.get_string_width(sanitize(c)) + 6
-            sample_w = merged_[c].astype(str).head(200).map(
-                lambda v: pdf.get_string_width(sanitize(v))
-            ).max() + 6
-            w = max(header_w, sample_w)
-            w = max(min_w, min(w, max_w))
-            raw_widths.append(w)
-
-        total_w = sum(raw_widths)
-        scale = page_w / total_w if total_w else 1
-        widths = [w * scale for w in raw_widths]
-        
+        card_w = (page_w - gap * (n - 1)) / n
+        x, y = margin, pdf.get_y()
+        for label, value, color in kpis:
+            pdf.set_fill_color(*LIGHT_BG)
+            pdf.rect(x, y, card_w, card_h, style="F")
+            pdf.set_fill_color(*color)
+            pdf.rect(x, y, card_w, 1.3, style="F")
+            pdf.set_xy(x, y + 4)
+            pdf.set_font("Helvetica", "B", 15)
+            pdf.set_text_color(*color)
+            pdf.cell(card_w, 8, sanitize(str(value)), align="C")
+            pdf.set_xy(x, y + 13)
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(*GREY)
+            pdf.cell(card_w, 5, sanitize(label.upper()), align="C")
+            x += card_w + gap
+        pdf.set_text_color(*TEXT_DARK)
+        pdf.set_xy(margin, y + card_h + 8)
 
         row_h = 6
 
-        
-        def draw_header():
-            pdf.set_font("Helvetica", "B", 7.5)
-            pdf.set_fill_color(220, 232, 249)
-            header_lines = [wrap_text(pdf, sanitize(c), w) for c, w in zip(cols, widths)]
-            max_h_lines = max(len(l) for l in header_lines)
-            h = 8 * max_h_lines
-            x_start, y_start = pdf.get_x(), pdf.get_y()
-            for lines, w in zip(header_lines, widths):
-                x, y = pdf.get_x(), pdf.get_y()
-                pdf.rect(x, y, w, h, style="F")
-                pdf.rect(x, y, w, h)
-                for i, line in enumerate(lines):
-                    pdf.set_xy(x, y + i * 4.2)
-                    pdf.cell(w, 4.2, line, border=0, align="C")
-                pdf.set_xy(x + w, y)
-            pdf.set_xy(x_start, y_start + h)
+        def render_table(data_df, title):
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(*PRIMARY)
+            pdf.cell(0, 8, title, ln=1)
+            pdf.set_text_color(*TEXT_DARK)
+            pdf.ln(1)
 
-        draw_header()
-        pdf.set_font("Helvetica", "", 7.5)
+            cols = list(data_df.columns)
+            page_w = 277
 
-        for _, r in merged_.iterrows():
-            is_total = str(r["Intern"]) == "TOTAL"
-            font_style = "B" if is_total else ""
-            pdf.set_font("Helvetica", font_style, 7.5)
+            pdf.set_font("Helvetica", "", 8)
+            min_w, max_w = 12, 70
+            raw_widths = []
+            for c in cols:
+                header_w = pdf.get_string_width(sanitize(c)) + 6
+                sample_w = data_df[c].astype(str).head(200).map(
+                    lambda v: pdf.get_string_width(sanitize(v))
+                ).max() + 6
+                w = max(header_w, sample_w)
+                w = max(min_w, min(w, max_w))
+                raw_widths.append(w)
 
-            wrapped_cells = []
-            max_lines = 1
-            for c, w in zip(cols, widths):
-                text = sanitize(r[c])
-                lines = wrap_text(pdf, text, w)
-                wrapped_cells.append((lines, w, True))
-                max_lines = max(max_lines, len(lines))
-                
+            total_w = sum(raw_widths)
+            scale = page_w / total_w if total_w else 1
+            widths = [w * scale for w in raw_widths]
 
-            this_row_h = row_h * max_lines
+            def draw_header():
+                pdf.set_font("Helvetica", "B", 7.5)
+                pdf.set_fill_color(*HEADER_BG)
+                pdf.set_text_color(*PRIMARY)
+                header_lines = [wrap_text(pdf, sanitize(c), w) for c, w in zip(cols, widths)]
+                max_h_lines = max(len(l) for l in header_lines)
+                h = 8 * max_h_lines
+                x_start, y_start = pdf.get_x(), pdf.get_y()
+                for lines, w in zip(header_lines, widths):
+                    x, y = pdf.get_x(), pdf.get_y()
+                    pdf.rect(x, y, w, h, style="F")
+                    pdf.rect(x, y, w, h)
+                    for i, line in enumerate(lines):
+                        pdf.set_xy(x, y + i * 4.2)
+                        pdf.cell(w, 4.2, line, border=0, align="C")
+                    pdf.set_xy(x + w, y)
+                pdf.set_xy(x_start, y_start + h)
 
-            if pdf.get_y() + this_row_h > pdf.page_break_trigger:
-                pdf.add_page()
-                draw_header()
+            draw_header()
+            pdf.set_font("Helvetica", "", 7.5)
+
+            for ridx, (_, r) in enumerate(data_df.iterrows()):
+                is_total = str(r.get("Intern", "")) == "TOTAL"
+                font_style = "B" if is_total else ""
                 pdf.set_font("Helvetica", font_style, 7.5)
 
-            x_start = pdf.get_x()
-            y_start = pdf.get_y()
+                wrapped_cells = []
+                max_lines = 1
+                for c, w in zip(cols, widths):
+                    text = sanitize(r[c])
+                    lines = wrap_text(pdf, text, w)
+                    wrapped_cells.append((lines, w, True))
+                    max_lines = max(max_lines, len(lines))
 
-            for lines, w, is_wide in wrapped_cells:
-                x = pdf.get_x()
-                y = pdf.get_y()
-                pdf.rect(x, y, w, this_row_h)
-                for i, line in enumerate(lines):
-                    pdf.set_xy(x + 1, y + i * row_h)
-                    pdf.cell(w - 2, row_h, line, border=0, align="L")
-                pdf.set_xy(x + w, y)
-            pdf.set_xy(x_start, y_start + this_row_h)
-            
+                this_row_h = row_h * max_lines
+
+                if pdf.get_y() + this_row_h > pdf.page_break_trigger:
+                    pdf.add_page()
+                    draw_header()
+                    pdf.set_font("Helvetica", font_style, 7.5)
+
+                x_start = pdf.get_x()
+                y_start = pdf.get_y()
+
+                if is_total:
+                    pdf.set_fill_color(*TOTAL_BG)
+                    pdf.set_text_color(*PRIMARY)
+                elif ridx % 2 == 1:
+                    pdf.set_fill_color(*ROW_ALT)
+                    pdf.set_text_color(*TEXT_DARK)
+                else:
+                    pdf.set_fill_color(255, 255, 255)
+                    pdf.set_text_color(*TEXT_DARK)
+
+                for lines, w, is_wide in wrapped_cells:
+                    x = pdf.get_x()
+                    y = pdf.get_y()
+                    pdf.rect(x, y, w, this_row_h, style="F")
+                    pdf.set_draw_color(*HEADER_BG)
+                    pdf.rect(x, y, w, this_row_h)
+                    for i, line in enumerate(lines):
+                        pdf.set_xy(x + 1, y + i * row_h)
+                        pdf.cell(w - 2, row_h, line, border=0, align="L")
+                    pdf.set_xy(x + w, y)
+                pdf.set_xy(x_start, y_start + this_row_h)
+                pdf.set_text_color(*TEXT_DARK)
+
+        render_table(merged_, "Intern + Institute Summary")
+
+        if summary_table is not None and not summary_table.empty:
+            pdf.ln(6)
+            render_table(summary_table, summary_title)
 
         out = pdf.output(dest="S")
         return out.encode("latin-1") if isinstance(out, str) else bytes(out)    
 
-    pdf_bytes = build_pdf(merged_display, sl_date)
+    tasks_label = f"Tasks ({sl_date})" if sl_mode == "Single Date" else "Tasks (Overall)"
+    clubs_day_label = "Clubs (Day)" if sl_mode == "Single Date" else "Clubs (Overall)"
+    pdf_label = str(sl_date) if sl_mode == "Single Date" else "Overall"
+
+    pdf_kpis = [
+        (tasks_label, totals.get("Tasks", 0), (13, 71, 161)),
+        (clubs_day_label, totals.get("Clubs (Day)", 0), (46, 125, 50)),
+        ("Total Emails", totals.get("Emails (Total)", 0), (106, 27, 154)),
+        ("Total Contacts", totals.get("Contacts (Total)", 0), (191, 54, 12)),
+        ("Total Clubs Collected", total_clubs_collected, (13, 71, 161)),
+    ]
+    if show_today_kpi:
+        pdf_kpis.append(("Today's Clubs Collected", today_clubs_total, (46, 125, 50)))
+
+    pdf_display = display_df.copy()
+    pdf_label_final = f"{pdf_label}_Pending" if show_pending else pdf_label
+    btn_label = "📥 Export Pending Tasks PDF" if show_pending else "📥 Export PDF Report"
+
+    summary_table_pdf = summary_df.drop(columns=["Tasks"], errors="ignore")
+    total_pending_row = {c: "" for c in summary_table_pdf.columns}
+    total_pending_row["Intern"] = "TOTAL"
+    for c in summary_table_pdf.columns:
+        if c != "Intern":
+            total_pending_row[c] = summary_table_pdf[c].sum()
+    summary_table_pdf = pd.concat([summary_table_pdf, pd.DataFrame([total_pending_row])], ignore_index=True)
+    pdf_bytes = build_pdf(pdf_display, pdf_label_final, pdf_kpis, summary_table_pdf, "Intern-wise Totals", intern_name=sl_intern)
     st.download_button(
-        "📥 Export PDF Report",
+        btn_label,
         data=pdf_bytes,
-        file_name=f"SubLeader_Report_{sl_date}.pdf",
+        file_name=f"Data_Analyst_Report_{pdf_label_final.replace(' ', '_')}.pdf",
         mime="application/pdf",
         use_container_width=True,
         key="subleader_pdf_export",
-    )   
+    )
