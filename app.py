@@ -1655,6 +1655,8 @@ with tab6:
     btn_label = "📥 Export Pending Tasks PDF" if show_pending else "📥 Export PDF Report"
 
     summary_table_pdf = summary_df.drop(columns=["Tasks"], errors="ignore")
+    if sl_mode != "Single Date":
+        summary_table_pdf = summary_table_pdf.drop(columns=["Clubs (Day)"], errors="ignore")
     total_pending_row = {c: "" for c in summary_table_pdf.columns}
     total_pending_row["Intern"] = "TOTAL"
     for c in summary_table_pdf.columns:
