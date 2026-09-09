@@ -271,6 +271,7 @@ intern_links = {
     "Divya":"https://docs.google.com/spreadsheets/d/1T-uU0GTJrtK922x4pwOl11yBUqYfnsejCFeYxl63MaQ/edit?gid=0#gid=0",
     "Jyoti":"https://docs.google.com/spreadsheets/d/1drc49a0wP47Y5urt_cBh2WADB2Mwzfu5B1I5GXKdnMY/edit?gid=2003372392#gid=2003372392",
     "Sreekar":"https://docs.google.com/spreadsheets/d/1vqf7SdR5FPkaN-0axbbpgL-KB8D49Sffn8QcoghF-Jo/edit?gid=0#gid=0",
+    "Mayuri":"https://docs.google.com/spreadsheets/d/1_-jbjrJRSnshfzZCrcmoDYVzOcnbn_TiFUkfkwGcIrc/edit?usp=sharing",
     
 }
 
@@ -306,6 +307,8 @@ intern_ids = {
     "Vishvesh":"",
     "Anshika":"",
     "Divya":"",
+    "Sreekar":"",
+    "Mayuri":"",
 }
 weekend_warrior_interns = {
     "Zainab",
