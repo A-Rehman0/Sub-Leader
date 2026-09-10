@@ -274,7 +274,7 @@ intern_links = {
     "Mayuri":"https://docs.google.com/spreadsheets/d/1_-jbjrJRSnshfzZCrcmoDYVzOcnbn_TiFUkfkwGcIrc/edit?usp=sharing",
     "Tanishq":"https://docs.google.com/spreadsheets/d/124ed3sQIFdefX963p2vi4DXTqzQXjFt9kcqILtMXDcg/edit?usp=sharing",
     "Vignesh":"https://docs.google.com/spreadsheets/d/12p3A5bCqTcHe8u5pxg52jJXA8mroNmT3aKayXv93taU/edit?usp=sharing",
-    "Sandeep":"",
+    "Sandeep":"https://docs.google.com/spreadsheets/d/14JVf1aXe8lgAhNfXfrqWq8BlnLSsZ--x/edit?usp=drivesdk&ouid=100251730631287413193&rtpof=true&sd=true",
     
 }
 
