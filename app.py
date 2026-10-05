@@ -279,6 +279,7 @@ intern_links = {
     "Raj":"https://docs.google.com/spreadsheets/d/1D90H9V68jK4HPY-w1TJ4pVaBMgGI92BKgahbZudespY/edit?usp=sharing",
     "Pranay":"https://docs.google.com/spreadsheets/d/1VnMaTy5xDIuDQx5Dwz-2Iy0BjWfYaDYXHHQhwMxSaJA/edit?usp=drivesdk",
     "Sagar":"https://docs.google.com/spreadsheets/d/1FXVXSGWqH-Hf7xgNvmJOrhPdW6nW4o6Tw4Hec3IVcxE/edit?usp=drivesdk",
+    "Naman":"https://docs.google.com/spreadsheets/d/1I-uV98_S6RQ6-cXEpkfBTwhJ-m2bnpCvzjLiSNY_ioI/edit?usp=sharing",
     
 }
 
@@ -323,6 +324,7 @@ intern_ids = {
     "Raj":"",
     "Pranay":"",
     "Sagar":"",
+    "Naman":"",
 }
 weekend_warrior_interns = {
     "Zainab",
